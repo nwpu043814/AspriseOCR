@@ -1,7 +1,13 @@
 package setting;
 
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.io.Serializable;
+import java.util.Calendar;
+import java.util.Date;
+
+import price.PriceHolder;
+import util.Util;
 
 
 
@@ -15,17 +21,27 @@ import java.io.Serializable;
 
 public class Setting implements Serializable
 {
-	private static final long		serialVersionUID	= 3050285319497830578L;
+	private static final long		serialVersionUID		= 3050285319497830578L;
 	private Rectangle				mCaptureRect;
 	private Rectangle				mOcrTestRect;
-	private static final Setting	mInstance			= new Setting();
+	private static final Setting	mInstance				= new Setting();
 
 	// 图片缩放率
-	private float					mImageZoomRate		= 1.0f;
-	private int						mHttpServerPort		= Constant.HTTP_SERVER_DEFAULT_PORT;
-	private boolean					mIsTrunkPrice		= false;
-	private int						mPriceWorkerNumner	= 1;
-	private int						mPriceGetterSleep	= 200;
+	private float					mImageZoomRate			= 1.0f;
+	private int						mHttpServerPort			= Constant.HTTP_SERVER_DEFAULT_PORT;
+	private boolean					mIsTrunkPrice			= false;
+	private int						mPriceWorkerNumner		= 1;
+	private int						mPriceGetterSleep		= 200;
+
+	private Point					mOrigin2DoLowButton		= new Point(0, 0);
+	private Point					mOrigin2DoHighButton	= new Point(0, 0);
+	private Calendar				mPrepareTime			= Calendar.getInstance();
+	private int						mMaxChasePriceDiff		= 20;
+	private int						mMaxChaseTimeSpan		= 30;
+	private float					mPreparePrice			= 0.0F;
+	private float					mFirePrice				= 0.0F;
+	private float					mChasePriceThreshold	= 5;
+	private long					mChaseTime				= 0L;
 
 	private Setting()
 	{
@@ -42,7 +58,31 @@ public class Setting implements Serializable
 			mPriceGetterSleep = s.getPriceGetterSleep();
 			mHttpServerPort = s.getHttpServerPort();
 			mPriceWorkerNumner = s.getPriceWorkerNumber();
+			setOrigin2Button(false, s.getOrigin2Button(false));
+			setOrigin2Button(true, s.getOrigin2Button(true));
+			mPrepareTime = s.getPrepareTime();
+			mMaxChasePriceDiff = s.getMaxChasePriceDiff();
+			mMaxChaseTimeSpan = s.getMaxChaseTimeSpan();
+			mChasePriceThreshold = s.getChasePriceThreshold();
+			mPreparePrice = s.getPreparePrice();
+			mChaseTime = s.getChaseTime();
+			mFirePrice = s.getFirePrice();
 		}
+	}
+
+	public float getPreparePrice()
+	{
+		return mPreparePrice;
+	}
+
+	public long getChaseTime()
+	{
+		return mChaseTime;
+	}
+
+	public void setChaseTime(long chaseTime)
+	{
+		mChaseTime = chaseTime;
 	}
 
 	public void setCaptureRect(Rectangle rect)
@@ -58,14 +98,22 @@ public class Setting implements Serializable
 	@Override
 	public String toString()
 	{
-		return "Setting [mCaptureRect=" + mCaptureRect + ", HttpServerPort=" + mHttpServerPort + ", OcrTestRect=" + mOcrTestRect + ", imageZoomRate="
-				+ mImageZoomRate + ", isTrunkPrice=" + mIsTrunkPrice + ", mPriceGetterSleep=" + mPriceGetterSleep + ", mPriceWorkerNumner="
-				+ mPriceWorkerNumner + "]";
+		return "Setting[\nCaptureRect=" + mCaptureRect + "\nHttpServerPort=" + mHttpServerPort + "\nOcrTestRect=" + mOcrTestRect + "\nImageZoomRate="
+				+ mImageZoomRate + "\nIsTrunkPrice=" + mIsTrunkPrice + "\nPriceGetterSleep=" + mPriceGetterSleep + "\nPriceWorkerNumner="
+				+ mPriceWorkerNumner + "\nOrigin2High=" + getOrigin2Button(true) + "\nOrigin2Low=" + getOrigin2Button(false) + "\nMaxChaseTimeSpan="
+				+ mMaxChaseTimeSpan + "\nMaxChasePriceDiff=" + mMaxChasePriceDiff + "\nChasePriceThreshold=" + mChasePriceThreshold
+				+ "\nPrePareTime=" + Util.formatDate(mPrepareTime.getTime()) + "\nPreparePrice=" + mPreparePrice + "\nFireTime=" + mChaseTime + ","
+				+ Util.seconds2Time(mChaseTime) + "\nFirePrice=" + mFirePrice + "]";
 	}
 
 	public static Setting getInstance()
 	{
 		return mInstance;
+	}
+	
+	public void setPreparePrice(float p)
+	{
+		mPreparePrice = p;
 	}
 
 	public int getHttpServerPort()
@@ -135,5 +183,129 @@ public class Setting implements Serializable
 	public int getPriceWorkerNumber()
 	{
 		return mPriceWorkerNumner;
+	}
+
+
+	/**
+	 * 获得原点到按钮的位移。
+	 * 
+	 * @param isDoHigh -true 做多 ，否则为做空
+	 * @return
+	 */
+	public Point getOrigin2Button(boolean isDoHigh)
+	{
+		return isDoHigh ? mOrigin2DoHighButton : mOrigin2DoLowButton;
+	}
+
+	/**
+	 * 设置原点到按钮的位移。
+	 * 
+	 * @param isDoHigh -true 做多 ，否则为做空
+	 * @param point 新的原点到下单按钮的距离。
+	 */
+	public void setOrigin2Button(boolean isDoHigh, Point point)
+	{
+		if (point == null)
+		{
+			return;
+		}
+
+		if (isDoHigh)
+		{
+			mOrigin2DoHighButton = new Point(point);
+		}
+		else
+		{
+			mOrigin2DoLowButton = new Point(point);
+		}
+	}
+
+	/**
+	 * 设置最大追单间隔
+	 * 
+	 * @param time
+	 */
+	public void setMaxChaseTimeSpan(int time)
+	{
+		mMaxChaseTimeSpan = time;
+	}
+
+	/**
+	 * 设置最大追单间隔
+	 * 
+	 * @return
+	 */
+	public int getMaxChaseTimeSpan()
+	{
+		return mMaxChaseTimeSpan;
+	}
+
+	/**
+	 * 设置最大追单价差
+	 * 
+	 * @param diff
+	 */
+	public void setMaxChasePriceDiff(int diff)
+	{
+		mMaxChasePriceDiff = diff;
+	}
+
+	/**
+	 * 获得最大追单价差
+	 * 
+	 * @return
+	 */
+	public int getMaxChasePriceDiff()
+	{
+		return mMaxChasePriceDiff;
+	}
+
+
+	/**
+	 * 设置追单价格阈值
+	 * 
+	 * @param threshold
+	 */
+	public void setChasePriceThreshold(float threshold)
+	{
+		if (threshold > 0.1F)
+		{
+			mChasePriceThreshold = threshold;
+		}
+	}
+
+	/**
+	 * 
+	 * @return 返回追单价格阈值
+	 */
+	public float getChasePriceThreshold()
+	{
+		return mChasePriceThreshold;
+	}
+
+	/**
+	 * 自动追单起始时刻
+	 */
+	public Calendar getPrepareTime()
+	{
+		return mPrepareTime;
+	}
+
+	/**
+	 * 自动追单起始时刻
+	 */
+	public void setPrepareTime(Calendar cal)
+	{
+		mPrepareTime = cal;
+	}
+
+	public void setFirePrice(float pr)
+	{
+		mFirePrice = pr;
+	}
+
+	public float getFirePrice()
+	{
+		return mFirePrice;
 	}
 }

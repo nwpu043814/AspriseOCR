@@ -31,8 +31,6 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 
-import util.Logger;
-
 /*
  * Copyright (C) 2005-2010 TENCENT Inc.All Rights Reserved.
  * FileName£ºNanoHTTPD.java

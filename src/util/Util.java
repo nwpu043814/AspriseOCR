@@ -3,13 +3,16 @@ package util;
 import java.awt.AWTException;
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 
 import setting.Constant;
@@ -49,7 +52,7 @@ public class Util
 		while (sRobot == null && i++ < Constant.INITIALIZE_RETRY_TIMES);
 	}
 
-	public static  String exchangeChar(String text)
+	public static String exchangeChar(String text)
 	{
 		if (text != null)
 		{
@@ -63,6 +66,37 @@ public class Util
 		}
 
 		return text;
+	}
+
+	public static Point parsePoint(String[] arg)
+	{
+		if (arg == null)
+		{
+			return null;
+		}
+
+		Point point = new Point();
+
+		for (String token : arg)
+		{
+			String[] array = token.split(Constant.KEY_VAULE_SPLITER);
+
+			if (array == null || array.length < 2)
+			{
+				return null;
+			}
+
+			if (array[0].equalsIgnoreCase(Constant.CAPTURE_CORDINATE_START_X))
+			{
+				point.x = Integer.parseInt(array[1]);
+			}
+			else if (array[0].equalsIgnoreCase(Constant.CAPTURE_CORDINATE_START_Y))
+			{
+				point.y = Integer.parseInt(array[1]);
+			}
+		}
+
+		return point;
 	}
 
 	public static Rectangle parseInputParams(String[] arg)
@@ -131,7 +165,7 @@ public class Util
 		return text;
 	}
 
-	public static  BufferedImage capture(Rectangle rect, String fileName, boolean doTwoValue)
+	public static BufferedImage capture(Rectangle rect, String fileName, boolean doTwoValue)
 	{
 		try
 		{
@@ -199,6 +233,11 @@ public class Util
 	public static String getCurrentTime()
 	{
 		return sDateFormater.format(new Date());
+	}
+
+	public static String formatDate(Date t)
+	{
+		return sDateFormater.format(t);
 	}
 
 	/**
@@ -283,7 +322,7 @@ public class Util
 	 * @param times 放大倍数
 	 * @return
 	 */
-	public static  BufferedImage zoomInImage(BufferedImage originalImage, float times)
+	public static BufferedImage zoomInImage(BufferedImage originalImage, float times)
 	{
 
 		// 加速处理
@@ -323,6 +362,52 @@ public class Util
 			{
 				result = price.substring(0, dotPos);
 			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * 将形如 “HH:mm:ss”格式的时间转换为Calendar并返回，日期取今天的。
+	 * 
+	 * @param s
+	 * @return
+	 */
+	public static Calendar stringToCalendar(String s)
+	{
+		Date time = new Date();
+		SimpleDateFormat sd = new SimpleDateFormat("yyyy/MM/dd ");
+
+		String dateStr = sd.format(time);
+		String token[] = null;
+		if (s == null || (token = s.trim().split(":")).length < 3)
+		{
+			return null;
+		}
+
+		float second = Float.parseFloat(token[2]);
+		int sec = (int) second;
+		Calendar result = null;
+
+		StringBuilder builder = new StringBuilder();
+		builder.append(dateStr).append(token[0]).append(":").append(token[1]).append(":").append(sec);
+
+		sd = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+		try
+		{
+			Date parse = sd.parse(builder.toString());
+			if (parse != null)
+			{
+				result = Calendar.getInstance();
+				long span = parse.getTime();
+				int temp = (int) (second*1000 - sec*1000); 
+				span += temp;
+				result.setTimeInMillis(span);
+			}
+		}
+		catch (ParseException e)
+		{
+			e.printStackTrace();
 		}
 
 		return result;

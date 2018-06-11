@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.Calendar;
 
 import javax.imageio.ImageIO;
 
@@ -20,6 +21,8 @@ import setting.Constant;
 import setting.Setting;
 import util.Logger;
 import util.Util;
+import win32.ActionManager;
+import win32.IActionManager;
 import worker.Worker;
 
 /*
@@ -40,7 +43,7 @@ public class MainApp
 	public static final int	USER_RQUEST_TYPE_STOP_PRICE_UPDATE_SERVICE			= 6;
 	public static final int	USER_RQUEST_TYPE_SET_CAPTURE_COORDINATE				= 7;
 	public static final int	USER_RQUEST_TYPE_DISPLAY_ALL_SERVICES_STATUS		= 8;
-	public static final int	USER_RQUEST_TYPE_QUIT								= 18;
+	public static final int	USER_RQUEST_TYPE_QUIT								= 30;
 	public static final int	USER_RQUEST_TYPE_TEST_OCR							= 11;
 	public static final int	USER_RQUEST_TYPE_SET_HTTP_SERVER_PORT				= 9;
 	public static final int	USER_RQUEST_TYPE_SET_OCR_TEST_RECT					= 10;
@@ -49,8 +52,16 @@ public class MainApp
 	public static final int	USER_RQUEST_TYPE_TRUNK_PRICE						= 14;
 	public static final int	USER_RQUEST_TYPE_SET_PRICE_GETTER_SLEEP_INTERVAL	= 15;
 	public static final int	USER_RQUEST_TYPE_SET_PRICE_GETTER_NUMBER			= 16;
+	public static final int	USER_RQUEST_TYPE_SET_ORIGIN_TO_DOHIGH_BUTTON		= 17;
+	public static final int	USER_RQUEST_TYPE_SET_ORIGIN_TO_DOLOW_BUTTON			= 18;
+	public static final int	USER_RQUEST_TYPE_SET_PREPARE_TIME					= 19;
+	public static final int	USER_RQUEST_TYPE_SET_MAX_CHASE_TIME_SPAN			= 20;
+	public static final int	USER_RQUEST_TYPE_SET_MAX_CHASE_PRICE_DIFF			= 21;
+	public static final int	USER_RQUEST_TYPE_SET_CHASE_THRESHOLD				= 22;
 	private Worker			mPriceWorker										= null;
 	private static MainApp	mInstance											= null;
+	private IActionManager	mActionManager										= new ActionManager();
+
 
 	public static MainApp getInstance()
 	{
@@ -119,7 +130,7 @@ public class MainApp
 
 	public void dipslayMenu()
 	{
-		Logger.p("\r\nDataServer 1.5");
+		Logger.p("\r\nDataServer 1.8.1");
 		Logger.p("1. Start all service");
 		Logger.p("2. Stop all service");
 		Logger.p("3. Start HTTP server");
@@ -136,7 +147,13 @@ public class MainApp
 		Logger.p("14. Set trunk price");
 		Logger.p("15. Set Price Getter sleep interval");
 		Logger.p("16. Set Price Getter number");
-		Logger.p("18. Quit");
+		Logger.p("17. Set origin to do high button");
+		Logger.p("18. Set origin to do low button");
+		Logger.p("19. Set prepare time");
+		Logger.p("20. Set max chase time pan");
+		Logger.p("21. Set max chase price diff");
+		Logger.p("22. Set chase price threshold");
+		Logger.p("30. Quit");
 		Logger.pcn("Please input select:");
 	}
 
@@ -424,6 +441,102 @@ public class MainApp
 				}
 				break;
 			}
+			case USER_RQUEST_TYPE_SET_ORIGIN_TO_DOHIGH_BUTTON:
+			{
+				Logger.pcn("Please input the shift from origin to high:");
+				String param = Util.getConsoleInput();
+				String[] arg = param.split(" ");
+				Setting.getInstance().setOrigin2Button(true, Util.parsePoint(arg));
+				break;
+			}
+			case USER_RQUEST_TYPE_SET_ORIGIN_TO_DOLOW_BUTTON:
+			{
+				Logger.pcn("Please input the shift from origin to low:");
+				String param = Util.getConsoleInput();
+				String[] arg = param.split(" ");
+				Setting.getInstance().setOrigin2Button(false, Util.parsePoint(arg));
+				break;
+			}
+			case USER_RQUEST_TYPE_SET_PREPARE_TIME:
+			{
+				Logger.pcn("Please input the prepare time(such as \"13:45:3.5\"):");
+				String param = Util.getConsoleInput();
+				Calendar calendar = Util.stringToCalendar(param);
+				if (calendar != null)
+				{
+					Setting.getInstance().setPrepareTime(calendar);
+					PriceHolder.getInstance().clearPreparePrice();
+					Logger.pcn("set prepare time successfully!");
+				}
+				else
+				{
+					Logger.pcn("set prepare time failed!");
+				}
+				break;
+			}
+			case USER_RQUEST_TYPE_SET_MAX_CHASE_TIME_SPAN:
+			{
+				Logger.pcn("Please input the max chase time span (in secconds):");
+				String num = Util.getConsoleInput();
+				if (Util.isEmpty(num))
+				{
+					Logger.p("Invalid input");
+				}
+				else
+				{
+					int count = Integer.parseInt(num);
+					if (count <= 0)
+					{
+						Logger.p("Invalid input");
+					}
+
+					Setting.getInstance().setMaxChaseTimeSpan(count);
+					Logger.p("Current max chase time span is " + count);
+				}
+				break;
+			}
+			case USER_RQUEST_TYPE_SET_MAX_CHASE_PRICE_DIFF:
+			{
+				Logger.pcn("Please input the max chase price diff:");
+				String num = Util.getConsoleInput();
+				if (Util.isEmpty(num))
+				{
+					Logger.p("Invalid input");
+				}
+				else
+				{
+					int diff = Integer.parseInt(num);
+					if (diff <= 0)
+					{
+						Logger.p("Invalid input");
+					}
+
+					Setting.getInstance().setMaxChasePriceDiff(diff);
+					Logger.p("The current max price diff is " + diff);
+				}
+				break;
+			}
+			case USER_RQUEST_TYPE_SET_CHASE_THRESHOLD:
+			{
+				Logger.pcn("Please input the price threshold:");
+				String num = Util.getConsoleInput();
+				if (Util.isEmpty(num))
+				{
+					Logger.p("Invalid input");
+				}
+				else
+				{
+					float threshold = Float.parseFloat(num);
+					if (threshold <= 0)
+					{
+						Logger.p("Invalid input");
+					}
+
+					Setting.getInstance().setChasePriceThreshold(threshold);
+					Logger.p("The current pirce threshold is " + threshold);
+				}
+				break;
+			}
 		}
 
 		return userInput;
@@ -499,5 +612,15 @@ public class MainApp
 			}
 		}
 		return true;
+	}
+
+
+	/**
+	 * 
+	 * @return 做单行为管理器
+	 */
+	public IActionManager getActionManager()
+	{
+		return mActionManager;
 	}
 }

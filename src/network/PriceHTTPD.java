@@ -5,8 +5,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.Map;
 
 import main.MainApp;
-import network.NanoHTTPD.AsyncRunner;
-import network.NanoHTTPD.DefaultAsyncRunner;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -38,29 +36,40 @@ public class PriceHTTPD extends NanoHTTPD implements IHttpServer
 	private int							mCount				= 0;
 	private long						mStartCount			= 0L;
 	private float						mLastQueryUseTime	= 0.0F;
-	private String						mPriceWorkerRate	= "0.0";
+	private	String						mPriceWorkerRate	= "0.0";
+	
+	private JSONObject mJsn = new JSONObject();
 
-	private JSONObject					mJsn				= new JSONObject();
+	/**
+	 * Default threading strategy for NanoHttpd.
+	 * 
+	 * <p>
+	 * By default, the server spawns a new Thread for every incoming request.
+	 * These are set to <i>daemon</i> status, and named according to the request
+	 * number. The name is useful when profiling the application.
+	 * </p>
+	 */
+	private static class DefaultAsyncRunner implements AsyncRunner
+	{
+		private long	requestCount;
 
-
+		@Override
+		public void exec(Runnable code)
+		{
+			++requestCount;
+			Thread t = new Thread(code);
+			Logger.p("requestCount=" + requestCount);
+			t.setDaemon(true);
+			t.setPriority(Thread.MAX_PRIORITY);
+			t.setName("PriceHTTPD Request Processor (#" + requestCount + ")");
+			t.start();
+		}
+	}
+	
 	private PriceHTTPD(int port)
 	{
 		super(port);
-		setAsyncRunner(new AsyncRunner()
-		{
-			private long	requestCount;
-
-			@Override
-			public void exec(Runnable code)
-			{
-				++requestCount;
-				Thread t = new Thread(code);
-				Logger.p("requestCount=" + requestCount);
-				t.setDaemon(true);
-				t.setName("PriceHTTPD Request Processor (#" + requestCount + ")");
-				t.start();
-			}
-		});
+		setAsyncRunner(new DefaultAsyncRunner());
 	}
 
 	public static IHttpServer getInstance()
@@ -134,15 +143,14 @@ public class PriceHTTPD extends NanoHTTPD implements IHttpServer
 			if (parms.get(Constant.HTML_REQUEST_CURRENT_TIME) != null)
 			{
 				msg.setLength(0);
-
+				
 				try
 				{
+					mJsn.put(Constant.NETWORK_KEY_CHASE_DIRECT, mPriceHolder.getChaseDirect());
 					mJsn.put(Constant.NETWORK_KEY_PRICE, mPriceHolder.getPrice());
 					mJsn.put(Constant.NETWORK_KEY_MILLION_SECOND, mPriceHolder.getMillionSeconds());
-					mJsn.put(Constant.NETWORK_KEY_TIME,
-							new String(mPriceHolder.getPriceTime().getBytes(Constant.ENCODE_UTF_8), Constant.ENCODE_UTF_8));
-					mJsn.put(Constant.NETWORK_KEY_QUERY_TIME, new String(String.format("%.2f", mLastQueryUseTime).getBytes(Constant.ENCODE_UTF_8),
-							Constant.ENCODE_UTF_8));
+					mJsn.put(Constant.NETWORK_KEY_TIME, new String(mPriceHolder.getPriceTime().getBytes(Constant.ENCODE_UTF_8), Constant.ENCODE_UTF_8));
+					mJsn.put(Constant.NETWORK_KEY_QUERY_TIME, new String(String.format("%.2f" ,mLastQueryUseTime).getBytes(Constant.ENCODE_UTF_8), Constant.ENCODE_UTF_8));
 					mJsn.put(Constant.NETWORK_KEY_CAPTURE_TIME, new String(mPriceWorkerRate.getBytes(Constant.ENCODE_UTF_8), Constant.ENCODE_UTF_8));
 				}
 				catch (JSONException e)
@@ -153,7 +161,7 @@ public class PriceHTTPD extends NanoHTTPD implements IHttpServer
 				{
 					ue.printStackTrace();
 				}
-
+				
 				updateQueryTime();
 				msg.append(mJsn.toString());
 			}
@@ -178,12 +186,12 @@ public class PriceHTTPD extends NanoHTTPD implements IHttpServer
 		{
 			mStartCount = System.currentTimeMillis();
 		}
-
+		
 		if (mCount >= Constant.QUERY_TIME_MAX_NUMBER)
 		{
 			mLastQueryUseTime = (System.currentTimeMillis() - mStartCount + 0.001F) / mCount;
 			mCount = 0;
-
+			
 			Worker priceWorker = MainApp.getInstance().getPriceWorker();
 			if (priceWorker != null)
 			{

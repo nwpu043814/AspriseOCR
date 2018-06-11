@@ -5,6 +5,8 @@ import java.awt.Graphics;
 import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.image.BufferedImage;
+import java.util.Calendar;
+import java.util.TimeZone;
 
 import setting.Constant;
 import setting.Setting;
@@ -54,7 +56,7 @@ public class PriceSingleWorker extends Worker
 					{
 						mStatistics.increaseCount();
 						price = Float.parseFloat(Util.exchangeChar(Setting.getInstance().isTrunkPrice() ? Util.trunkFloat(text) : text));
-						PriceHolder.getInstance().updatePrice(price, System.currentTimeMillis());
+						PriceHolder.getInstance().updatePrice(price, Calendar.getInstance().getTimeInMillis() + Constant.TIME_ZONE_OFFSET);
 					}
 					catch (Exception e)
 					{
@@ -143,7 +145,7 @@ public class PriceSingleWorker extends Worker
 	{
 		synchronized (PriceSingleWorker.class)
 		{
-			return mOcr.recognizeEverything(image);
+			return mOcr.recognizeCharacters(image);
 		}
 	}
 

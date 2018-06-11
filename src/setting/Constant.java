@@ -41,6 +41,17 @@ public interface Constant
 	final String				NETWORK_KEY_TIME				= "TIME";
 	final String				NETWORK_KEY_QUERY_TIME			= "QUERY_TIME";
 	final String				NETWORK_KEY_CAPTURE_TIME		= "CAPTURE_TIME";
-	
+	final String				NETWORK_KEY_CHASE_DIRECT		= "CHASE_DIRECT";
+
 	final String				ENCODE_UTF_8					= "UTF-8";
+	final String				DO_TRADE_DIALOG_TITLE			= "¶©µ¥´°¿Ú";
+	final String				DO_TRADE_DIALOG_CLASS_NAME		= "SunAwtDialog";
+
+	final long					TIME_ZONE_OFFSET				= 8 * 3600 * 1000L;
+
+	final int					DO_BOTH							= 0;
+	final int					DO_LOW							= 1;
+	final int					DO_HIGH							= 2;
+	final int					DO_COUNT						= 3;
+	final int					DO_UNKNOWN						= 4;
 }
